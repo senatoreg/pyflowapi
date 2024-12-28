@@ -74,8 +74,10 @@ class Route():
     async def _do_get(self, request, response):
         h = dict(request.headers)
         q = dict(request.query_params)
+        client = list(request.client)
 
-        rep = await self._run_pipe(data={"headers": h, "query": q})
+        rep = await self._run_pipe(data={"headers": h, "query": q,
+                                         "client": client})
 
         if rep[1] != 0:
             raise fastapi.HTTPException(
@@ -91,8 +93,10 @@ class Route():
         h = dict(request.headers)
         b = await request.body()
         q = json.loads(b.decode("utf-8"))
+        client = list(request.client)
 
-        rep = await self._run_pipe(data={"headers": h, "query": q})
+        rep = await self._run_pipe(data={"headers": h, "query": q,
+                                         "client": client})
 
         if rep[1] != 0:
             raise fastapi.HTTPException(
@@ -242,7 +246,8 @@ class Server():
         #
         config = uvicorn.Config(self.app, host=self.config.get("address"),
                                 port=self.config.get("port"),
-                                log_level=self._loglevel, access_log=True)
+                                log_level=self._loglevel, access_log=True,
+                                proxy_headers=True)
 
         config.ssl_certfile = self.config.get("ssl").get("cert")
         config.ssl_keyfile = self.config.get("ssl").get("key")
