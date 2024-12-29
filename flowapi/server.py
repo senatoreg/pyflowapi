@@ -73,10 +73,11 @@ class Route():
 
     async def _do_get(self, request, response):
         h = dict(request.headers)
-        q = dict(request.query_params)
+        p = dict(request.query_params)
+        freeflow.utils.deepupdate(p, dict(request.path_params))
         client = list(request.client)
 
-        rep = await self._run_pipe(data={"headers": h, "query": q,
+        rep = await self._run_pipe(data={"headers": h, "param": p,
                                          "client": client})
 
         if rep[1] != 0:
@@ -92,10 +93,11 @@ class Route():
     async def _do_post(self, request, response):
         h = dict(request.headers)
         b = await request.body()
-        q = json.loads(b.decode("utf-8"))
+        p = json.loads(b.decode("utf-8"))
+        freeflow.utils.deepupdate(p, dict(request.path_params))
         client = list(request.client)
 
-        rep = await self._run_pipe(data={"headers": h, "query": q,
+        rep = await self._run_pipe(data={"headers": h, "param": p,
                                          "client": client})
 
         if rep[1] != 0:
