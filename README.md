@@ -1,8 +1,6 @@
 # PyFlowApi
 
-pyflowapi
-
-pyflowapi is a framework for creating REST API services, powered by [PyFreeFlow](https://github.com/senatoreg/pyfreeflow) and [FastAPI](https://fastapi.tiangolo.com).
+PyFlowApi is a framework for creating REST API services, powered by [PyFreeFlow](https://github.com/senatoreg/pyfreeflow) and [FastAPI](https://fastapi.tiangolo.com).
 It allows you to configure and expose endpoints through a simple YAML configuration file, without writing additional code.
 
 ## Definition
@@ -40,7 +38,7 @@ Where:
 Example:
 
 ```
-v1/0/encrypt
+v1/0/sleep
 ```
 
 ## Example configuration
@@ -107,16 +105,16 @@ api:
 
 This configuration exposes a single endpoint:
 
-Route: v1/0/sleep
-Method: GET/POST
-Pipeline: sleep, defined using pyfreeflow operators
+- Route: v1/0/sleep
+- Method: GET/POST
+- Pipeline: sleep, defined using pyfreeflow operators
 
 ## Quickstart
 
 Run the API server by providing a configuration file:
 
 ```bash
-pyflowapi-server -c config.yaml
+pyflowapi-server.py -c config.yaml
 ```
 
 ## Reference
