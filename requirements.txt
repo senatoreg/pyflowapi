@@ -1,4 +1,4 @@
 fastapi>=0.115.11
 uvicorn>=0.32.0
 uvloop>=0.21.0
-freeflow>=0.1.2
+pyfreeflow>=0.1.0

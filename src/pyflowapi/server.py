@@ -4,7 +4,7 @@ import json
 import uvicorn
 import fastapi
 import logging
-import freeflow
+import pyfreeflow
 import copy
 import re
 from platform import system
@@ -37,7 +37,7 @@ class Route():
             yield self._name + "[" + str(i) + "]"
 
     def _init_pipe(self, pipelina_name):
-        return freeflow.pipeline.Pipeline(self._config.get("node"),
+        return pyfreeflow.pipeline.Pipeline(self._config.get("node"),
                                           self._config.get("digraph"),
                                           last=self._config.get("last"), name=pipelina_name)
 
@@ -74,7 +74,7 @@ class Route():
     async def _do_get(self, request, response):
         h = dict(request.headers)
         p = dict(request.query_params)
-        freeflow.utils.deepupdate(p, dict(request.path_params))
+        pyfreeflow.utils.deepupdate(p, dict(request.path_params))
         client = list(request.client)
 
         rep = await self._run_pipe(data={"headers": h, "param": p,
@@ -94,7 +94,7 @@ class Route():
         h = dict(request.headers)
         b = await request.body()
         p = json.loads(b.decode("utf-8"))
-        freeflow.utils.deepupdate(p, dict(request.path_params))
+        pyfreeflow.utils.deepupdate(p, dict(request.path_params))
         client = list(request.client)
 
         rep = await self._run_pipe(data={"headers": h, "param": p,
@@ -161,25 +161,25 @@ class Server():
         self._loglevel = self.config.get("log").get("level")
 
         #
-        # Forward flowapi log level to freeflow
+        # Forward flowapi log level to pyfreeflow
         #
-        freeflow.set_loglevel(self.LOGGING_LEVELS[self._loglevel])
+        pyfreeflow.set_loglevel(self.LOGGING_LEVELS[self._loglevel])
 
         #
-        # set Uvicorn logging format compliant to freeflow
+        # set Uvicorn logging format compliant to pyfreeflow
         #
         uvicorn_logformatters = uvicorn.config.LOGGING_CONFIG["formatters"]
-        uvicorn_logformatters["default"]["fmt"] = freeflow.get_logformat()
-        uvicorn_logformatters["access"]["fmt"] = freeflow.get_logformat()
+        uvicorn_logformatters["default"]["fmt"] = pyfreeflow.get_logformat()
+        uvicorn_logformatters["access"]["fmt"] = pyfreeflow.get_logformat()
 
         #
         # Load configuration if any
         #
-        freeflow.utils.deepupdate(self.config, config)
+        pyfreeflow.utils.deepupdate(self.config, config)
 
-        freeflow_config = config.get("freeflow", {})
-        for freeflow_ext in freeflow_config.get("ext", []):
-            freeflow.load_extension(freeflow_ext)
+        pyfreeflow_config = config.get("pyfreeflow", {})
+        for pyfreeflow_ext in pyfreeflow_config.get("ext", []):
+            pyfreeflow.load_extension(pyfreeflow_ext)
 
         self._deps = {}
         self._route = {}

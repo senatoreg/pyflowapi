@@ -2,13 +2,13 @@
 import sys
 import argparse
 import yaml
-import flowapi
+import pyflowapi
 
 
 def main(argv):
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--config", "-c", type=str, required=False,
-                           default="flowapi-server.yaml",
+                           default="pyflowapi-server.yaml",
                            help="Configuration file")
 
     args = argparser.parse_args(argv)
@@ -17,7 +17,7 @@ def main(argv):
         d = f.read()
         config = yaml.safe_load(d)
 
-    server = flowapi.server.Server(config)
+    server = pyflowapi.server.Server(config)
     server.run()
 
 
