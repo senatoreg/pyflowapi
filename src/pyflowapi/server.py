@@ -37,9 +37,9 @@ class Route():
             yield self._name + "[" + str(i) + "]"
 
     def _init_pipe(self, pipelina_name):
-        return pyfreeflow.pipeline.Pipeline(self._config.get("node"),
-                                          self._config.get("digraph"),
-                                          last=self._config.get("last"), name=pipelina_name)
+        return pyfreeflow.pipeline.Pipeline(
+            self._config.get("node"), self._config.get("digraph"),
+            last=self._config.get("last"), name=pipelina_name)
 
     def _init_queue(self, min_size):
         try:
@@ -124,6 +124,7 @@ class Route():
 
 class Server():
     DEFAULT_CONFIG = {
+        "context": None,
         "address": None,
         "port": 1979,
         "log": {
@@ -184,6 +185,7 @@ class Server():
         self._deps = {}
         self._route = {}
         self.app = fastapi.FastAPI()
+        self.router = fastapi.APIRouter(prefix=self.config.get("context") or "")
         self._logger = logging.getLogger(
             ".".join([__name__, self.__class__.__name__]))
 
@@ -210,9 +212,11 @@ class Server():
             self._route[path] = route
 
             deps = [fastapi.Depends(self._deps[x].run) for x in api.get("depends", [])]
-            self.app.add_api_route(path, route.run,
-                                   methods=api.get("methods", ["GET", "POST"]),
-                                   dependencies=deps)
+            self.router.add_api_route(path, route.run,
+                                      methods=api.get("methods", ["GET", "POST"]),
+                                      dependencies=deps)
+
+        self.app.include_router(self.router)
 
     async def _fini_context(self):
         await self._server.shutdown()
@@ -251,8 +255,10 @@ class Server():
                                 log_level=self._loglevel, access_log=True,
                                 proxy_headers=True)
 
-        config.ssl_certfile = self.config.get("ssl").get("cert")
-        config.ssl_keyfile = self.config.get("ssl").get("key")
+        config.ssl_certfile = pyfreeflow.utils.EnvVarParser.parse(
+            self.config.get("ssl").get("cert"))
+        config.ssl_keyfile = pyfreeflow.utils.EnvVarParser.parse(
+            self.config.get("ssl").get("key"))
 
         self._server = uvicorn.Server(config)
         await self._server.serve()
