@@ -113,6 +113,7 @@ class Route():
     async def close(self):
         while not self._queue.empty():
             pipe = await self._queue.get()
+            await pipe.fini()
             del pipe
         for _ in range(self._max_size - self._size._value):
             self._size.release()
@@ -292,6 +293,7 @@ class Server():
     def run(self):
         self._loop.add_signal_handler(signal.SIGTERM, self._signal_handler)
         self._loop.add_signal_handler(signal.SIGINT, self._signal_handler)
+        self._loop.add_signal_handler(signal.SIGQUIT, self._signal_handler)
 
         self._task = self._loop.create_task(self._serve())
         try:
