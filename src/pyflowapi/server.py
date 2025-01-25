@@ -157,9 +157,15 @@ class Server():
         self.config = copy.deepcopy(self.DEFAULT_CONFIG)
 
         #
+        # Load configuration if any
+        #
+        pyfreeflow.utils.deepupdate(self.config, config)
+
+        #
         # Get log level
         #
         self._loglevel = self.config.get("log").get("level")
+        self._logfile = self.config.get("log").get("file")
 
         #
         # Forward flowapi log level to pyfreeflow
@@ -169,14 +175,34 @@ class Server():
         #
         # set Uvicorn logging format compliant to pyfreeflow
         #
-        uvicorn_logformatters = uvicorn.config.LOGGING_CONFIG["formatters"]
-        uvicorn_logformatters["default"]["fmt"] = pyfreeflow.get_logformat()
-        uvicorn_logformatters["access"]["fmt"] = pyfreeflow.get_logformat()
+        uvicorn_logconfig = uvicorn.config.LOGGING_CONFIG
+        uvicorn_logconfig["formatters"].update({
+            "pyfreeflow": {
+                "()": "uvicorn.logging.DefaultFormatter",
+                "fmt": pyfreeflow.get_logformat(),
+                "use_colors": False,
+            }
+        })
+        for k, v in uvicorn_logconfig["handlers"].items():
+            if "formatter" in v.keys():
+                v["formatter"] = "pyfreeflow"
 
-        #
-        # Load configuration if any
-        #
-        pyfreeflow.utils.deepupdate(self.config, config)
+        if self._logfile is not None:
+            handler = logging.FileHandler(self._logfile)
+            pyfreeflow.add_loghandler(handler)
+
+            uvicorn_logconfig['handlers'].update({
+                'file': {
+                    'formatter': 'pyfreeflow',
+                    'class': 'logging.FileHandler',
+                    'mode': 'a',
+                    'filename': self._logfile,
+                }
+            })
+
+            for k, v in uvicorn_logconfig["loggers"].items():
+                if "handlers" in v.keys() and isinstance(v["handlers"], list):
+                    v["handlers"].append("file")
 
         pyfreeflow_config = config.get("pyfreeflow", {})
         for pyfreeflow_ext in pyfreeflow_config.get("ext", []):
