@@ -17,6 +17,7 @@ class Route():
     def __init__(self, name, config, min_size=4, max_size=8):
         self._name = name
         self._config = config
+        self._min_size = min_size
         self._max_size = max_size
         self._queue = asyncio.Queue(max_size)
         self._size = asyncio.BoundedSemaphore(max_size)
@@ -27,7 +28,8 @@ class Route():
             "POST": self._do_post,
         }
 
-        self._init_queue(min_size)
+    async def init(self):
+        await self._init_queue(self._min_size)
 
     def _get_pipeline_name(self):
         return next(self._pipeline_name_generator)
@@ -36,15 +38,17 @@ class Route():
         for i in range(max_size):
             yield self._name + "[" + str(i) + "]"
 
-    def _init_pipe(self, pipelina_name):
-        return pyfreeflow.pipeline.Pipeline(
+    async def _init_pipe(self, pipelina_name):
+        pipe = pyfreeflow.pipeline.Pipeline()
+        await pipe.init(
             self._config.get("node"), self._config.get("digraph"),
             last=self._config.get("last"), name=pipelina_name)
+        return pipe
 
-    def _init_queue(self, min_size):
+    async def _init_queue(self, min_size):
         try:
             for i in range(min_size):
-                self._queue.put_nowait(self._init_pipe(self._get_pipeline_name()))
+                self._queue.put_nowait(await self._init_pipe(self._get_pipeline_name()))
         except asyncio.QueueFull as ex:
             raise ex
 
@@ -53,7 +57,7 @@ class Route():
         try:
             return self._queue.get_nowait()
         except asyncio.QueueEmpty:
-            return self._init_pipe(self._get_pipeline_name())
+            return await self._init_pipe(self._get_pipeline_name())
         return await self._queue.get()
 
     async def _release(self, pipe):
@@ -219,15 +223,17 @@ class Server():
         self._logger.setLevel(self.LOGGING_LEVELS[self._loglevel])
         self._logger.info("Running event loop: {}".format(asyncio.get_event_loop()))
 
-        self._init_context()
+    async def init(self):
+        await self._init_context()
 
-    def _init_context(self):
+    async def _init_context(self):
         version_splitter = re.compile(r"\.").split
         path_join = "/".join
 
         for dep in self.config.get("dependencies", []):
             route = Route(dep.get("name"), dep.get("pipeline"), min_size=dep.get("min_size", 4),
                           max_size=dep.get("max_size", 8))
+            await route.init()
             self._deps[dep.get("name")] = route
 
         for api in self.config.get("api", []):
@@ -274,6 +280,8 @@ class Server():
         t.add_done_callback(self._stop)
 
     async def _serve(self):
+        await self._init_context()
+
         #
         # Set server up
         #
